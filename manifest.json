@@ -1,0 +1,12 @@
+{
+  "name": "Counter POS",
+  "short_name": "POS",
+  "description": "Restaurant billing: menu, cash/card/credit bills, receipts and daily sales report.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#eef2f0",
+  "theme_color": "#0b6e5f",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
