@@ -1,4 +1,4 @@
-# Counter POS
+# Sales POS System
 
 A simple point-of-sale (billing) system for a restaurant counter. It runs in the browser, works offline, and prints 80 mm thermal receipts. No server, no database, no monthly fees.
 
@@ -11,11 +11,14 @@ A simple point-of-sale (billing) system for a restaurant counter. It runs in the
 - **Credit customers**: balance per customer, full ledger, and "Receive payment" in cash or bank.
 - **Sales report** for any date range: total sales, cash in drawer, card/bank, receivables outstanding, item-wise sales, and a summary journal (Dr Cash / Bank / Receivable, Cr Sales / Sales tax payable).
 - **Day-end slip** printed on the receipt printer; **CSV export** for Excel.
-- **Menu editor**: categories, items, prices, hide/show items. Old bills keep the price they were sold at.
+- **Two users**: Owner (everything) and Cashier (bills, reprints, credit payments only) with their own PINs. Every bill records who served it; a cashier needs the Owner's PIN to void a bill. Starting PINs are Owner 1234 and Cashier 0000 — change them in Settings.
+- **Menu & stock**: edit names, prices and categories with a Save changes bar; raise or lower prices by %; optional stock count per item that goes down on each sale, back up on a void, with "stock received" and "stock count" updates and low-stock alerts.
+- **Database**: everything is stored in the browser's IndexedDB database on the counter PC (no size limit like localStorage).
+- **Excel export (.xlsx)**: Summary, Bills, Bill items, Item sales, Credit payments, Customers, Menu & stock, Stock movements.
 - **Sales tax** (optional): separate rates for cash and card bills.
 - **Backup / restore** as a JSON file.
 
-Inventory is intentionally not included (out of scope for this version).
+
 
 ## Running it at the restaurant
 
@@ -36,7 +39,7 @@ Bills are saved in the browser on that PC (browser storage). That means:
 
 ## Development
 
-Plain HTML/CSS/JS in a single `index.html`. No build step.
+Plain HTML/CSS/JS: `index.html` (layout and styles) and `app.js` (logic). No build step.
 
 ```bash
 npx serve .        # or: python3 -m http.server 8080

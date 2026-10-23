@@ -7,7 +7,7 @@
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <meta name="theme-color" content="#0b6e5f">
 <!--ARTIFACT-START-->
-<title>Counter POS</title>
+<title>Sales POS System</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=JetBrains+Mono:wght@400;600&display=swap">
@@ -130,6 +130,34 @@ h1{font-size:24px} h2{font-size:18px} h3{font-size:15px}
 .quick{display:flex;gap:6px;flex-wrap:wrap}
 .change{display:flex;justify-content:space-between;font-weight:700;font-size:16px;padding:8px 10px;border-radius:8px;background:var(--surface-2)}
 .change.short{color:var(--void)}
+.taxhint{font-size:13px;padding:7px 10px;border-radius:8px;background:color-mix(in srgb,var(--bank) 12%,var(--surface));color:var(--ink)}
+.taxhint b{color:var(--bank)}
+.stk{font:600 12px/1 var(--f-mono);color:var(--muted)}
+.stk.low{color:var(--credit)} .stk.out{color:var(--void)}
+.tabbadge{display:inline-block;min-width:18px;padding:1px 6px;margin-left:6px;border-radius:99px;background:var(--credit);color:#fff;font:700 11px/16px var(--f-body);text-align:center}
+.savebar{position:sticky;top:calc(env(safe-area-inset-top,0px) + 64px);z-index:4;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;
+  background:var(--accent-soft);border:1px solid var(--accent);border-radius:12px;padding:10px 12px;margin-bottom:14px;font-weight:700}
+tr.changed td{background:color-mix(in srgb,var(--accent) 9%,transparent)}
+td input:disabled{opacity:.4}
+.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.filters input,.filters select{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 10px;min-width:0}
+.filters input{flex:1 1 200px}
+.radio{display:flex;gap:8px;align-items:flex-start;font-size:14px;color:var(--ink)}
+.radio input{margin-top:3px;accent-color:var(--accent)}
+.who{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);white-space:nowrap}
+.who b{color:var(--ink)}
+.role{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:2px 7px;border-radius:99px;background:var(--surface-2);color:var(--muted)}
+.login{position:fixed;inset:0;z-index:30;background:var(--bg);display:flex;align-items:center;justify-content:center;overflow:auto;
+  padding:max(24px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 24px max(16px,env(safe-area-inset-left,0px))}
+.login-card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:24px;width:min(420px,100%);display:flex;flex-direction:column;gap:16px;box-shadow:0 20px 50px rgb(0 0 0 / .08)}
+.login-brand{display:flex;flex-direction:column;gap:2px}
+.login-brand b{font:800 24px/1.1 var(--f-display);letter-spacing:-.01em}
+.login-brand span{color:var(--muted);font-size:13px}
+.login .field input{font-size:17px;padding:11px 12px}
+.user-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto auto;gap:8px;align-items:end}
+@media (max-width:520px){.user-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+.user-row input{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 10px;min-width:0;width:100%}
+.user-row label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted);min-width:0}
 .cart-actions{display:grid;grid-template-columns:auto 1fr;gap:8px}
 .cart-actions .primary{padding:13px 14px;font-size:16px}
 .note{font-size:13px;color:var(--muted);margin:0}
@@ -214,15 +242,16 @@ td input.price{max-width:110px;text-align:right;font-family:var(--f-mono)}
 <body><!--/STRIP-->
 <div class="app" id="app">
   <header class="topbar">
-    <div class="brand"><b id="brand-name">Restaurant</b><span>Counter POS</span></div>
+    <div class="brand"><b id="brand-name">Restaurant</b><span>Sales POS System</span></div>
     <nav class="tabs" aria-label="Sections">
       <button class="tab" data-act="tab" data-v="bill" aria-current="page">New bill</button>
       <button class="tab" data-act="tab" data-v="bills">Bills</button>
       <button class="tab" data-act="tab" data-v="credit">Credit</button>
       <button class="tab" data-act="tab" data-v="report">Report</button>
-      <button class="tab" data-act="tab" data-v="menu">Menu</button>
+      <button class="tab" data-act="tab" data-v="menu">Menu &amp; stock<span id="menu-badge"></span></button>
       <button class="tab" data-act="tab" data-v="settings">Settings</button>
     </nav>
+    <div class="who" id="who"></div>
     <div class="clock num" id="clock"></div>
   </header>
   <div id="banners"></div>
@@ -255,7 +284,7 @@ td input.price{max-width:110px;text-align:right;font-family:var(--f-mono)}
           <div class="sum" id="cart-sum"></div>
           <div class="seg pay" id="pay-method" role="group" aria-label="Payment">
             <button data-act="method" data-v="cash">Cash</button>
-            <button data-act="method" data-v="bank">Card / Bank</button>
+            <button data-act="method" data-v="bank">Card / Digital</button>
             <button data-act="method" data-v="credit">Credit</button>
           </div>
           <div id="pay-extra" class="stack"></div>
@@ -309,22 +338,44 @@ td input.price{max-width:110px;text-align:right;font-family:var(--f-mono)}
 
     <!-- MENU -->
     <section class="view" id="v-menu" hidden>
-      <div class="head"><div><h1>Menu</h1><p class="sub">Changes apply to new bills. Old bills keep the price they were sold at.</p></div></div>
+      <div class="head">
+        <div><h1>Menu &amp; stock</h1><p class="sub">Edit names, prices and stock in the table, then press Save changes. Old bills keep the price they were sold at.</p></div>
+        <div class="row">
+          <button class="btn" data-act="bulk-price">Change prices by %</button>
+          <button class="btn" data-act="xlsx-menu" id="xlsx-menu-btn">Download menu (Excel)</button>
+        </div>
+      </div>
+      <div class="savebar" id="menu-savebar" hidden>
+        <span id="menu-savebar-text"></span>
+        <div class="row"><button class="btn" data-act="menu-discard">Discard</button><button class="btn primary" data-act="menu-save">Save changes</button></div>
+      </div>
       <div class="cols-menu">
-        <div class="panel stack">
-          <h2>Categories</h2>
-          <div id="cat-list" class="stack"></div>
-          <form class="catrow" id="cat-form"><input id="new-cat" placeholder="New category" aria-label="New category"><button class="btn sm" type="submit">Add</button></form>
+        <div class="stack">
+          <div class="panel stack">
+            <h2>Categories</h2>
+            <div id="cat-list" class="stack"></div>
+            <form class="catrow" id="cat-form"><input id="new-cat" placeholder="New category" aria-label="New category"><button class="btn sm" type="submit">Add</button></form>
+          </div>
+          <div class="panel stack">
+            <h2>Low stock</h2>
+            <div id="low-list"></div>
+          </div>
         </div>
         <div class="panel stack">
-          <h2>Items</h2>
+          <h2>Add an item</h2>
           <form class="row" id="item-form">
             <label class="field" style="flex:2 1 200px"><span>Item name</span><input id="ni-name" required placeholder="e.g. Chicken Karahi (Half)"></label>
             <label class="field"><span>Price (Rs)</span><input id="ni-price" required inputmode="numeric" class="num" placeholder="0"></label>
             <label class="field"><span>Category</span><select id="ni-cat"></select></label>
+            <label class="field"><span>Opening stock (optional)</span><input id="ni-stock" inputmode="numeric" class="num" placeholder="Leave empty to not track"></label>
             <button class="btn primary" type="submit">Add item</button>
           </form>
           <p class="msg" id="menu-msg" role="status"></p>
+          <h2>All items</h2>
+          <div class="filters">
+            <input id="menu-q" type="search" placeholder="Search items" aria-label="Search items">
+            <select id="menu-cat" aria-label="Filter by category"></select>
+          </div>
           <div class="tablewrap" id="item-table"></div>
         </div>
       </div>
@@ -334,6 +385,7 @@ td input.price{max-width:110px;text-align:right;font-family:var(--f-mono)}
     <section class="view" id="v-settings" hidden>
       <div class="head"><div><h1>Settings</h1><p class="sub">Saved on this computer automatically.</p></div></div>
       <div class="cols2">
+        <div class="stack">
         <div class="panel stack">
           <h2>Receipt header</h2>
           <label class="field"><span>Restaurant name</span><input data-setting="name"></label>
@@ -344,14 +396,36 @@ td input.price{max-width:110px;text-align:right;font-family:var(--f-mono)}
           </div>
           <label class="field"><span>Receipt footer</span><input data-setting="footer"></label>
         </div>
+        <div class="panel stack">
+          <h2>Menu, prices and stock</h2>
+          <p class="note">Change item names and prices, add new dishes, and update stock in the Menu &amp; stock tab. You can also raise or lower all prices by a percentage in one step.</p>
+          <div class="row"><button class="btn primary" data-act="tab" data-v="menu">Edit menu &amp; prices</button></div>
+        </div>
+        <div class="panel stack">
+          <h2>Users and passwords</h2>
+          <p class="note">Owner: full rights, including menu, prices, stock, reports, credit, voids and settings. Cashier: only takes orders and prints bills (and can reprint a past bill). Nothing else.</p>
+          <div id="user-list" class="stack"></div>
+          <p class="msg" id="user-msg" role="status"></p>
+        </div>
+        </div>
         <div class="stack">
           <div class="panel stack">
-            <h2>Tax and billing</h2>
+            <h2>Sales tax</h2>
+            <label class="field"><span>Tax system</span><select id="tax-regime">
+              <option value="pra">Punjab: PRA (16% cash, 8% card / digital)</option>
+              <option value="srb">Sindh: SRB (15% cash, 8% card / digital)</option>
+              <option value="custom">Other province or custom rates</option>
+              <option value="none">Not registered: no sales tax</option>
+            </select></label>
             <div class="row">
-              <label class="field"><span>Sales tax on cash / credit bills (%)</span><input data-setting="taxCash" inputmode="decimal" class="num"></label>
-              <label class="field"><span>Sales tax on card / bank bills (%)</span><input data-setting="taxCard" inputmode="decimal" class="num"></label>
+              <label class="field"><span>Tax on cash / credit bills (%)</span><input data-setting="taxCash" inputmode="decimal" class="num"></label>
+              <label class="field"><span>Tax on card / digital bills (%)</span><input data-setting="taxCard" inputmode="decimal" class="num"></label>
             </div>
-            <p class="note">Leave at 0 if the restaurant does not charge sales tax. Rates differ by province, so confirm them with the restaurant's accountant.</p>
+            <div class="row">
+              <label class="field"><span>Name printed on bill</span><input data-setting="taxLabel" placeholder="e.g. PRA Sales Tax"></label>
+              <label class="field"><span>Tax registration no. (PNTN / SRB no.)</span><input data-setting="taxRegNo"></label>
+            </div>
+            <p class="note">The card rate applies to debit and credit cards, mobile wallets (JazzCash, Easypaisa) and QR payments. Credit (udhaar) bills use the cash rate. Rates change with each provincial budget, so confirm them with the restaurant's accountant.</p>
             <div class="row">
               <label class="field"><span>Currency label</span><input data-setting="currency"></label>
               <label class="field"><span>Next bill number</span><input data-setting="nextNo" inputmode="numeric" class="num"></label>
@@ -360,7 +434,11 @@ td input.price{max-width:110px;text-align:right;font-family:var(--f-mono)}
           </div>
           <div class="panel stack">
             <h2>Data</h2>
-            <p class="note" id="data-note">Bills are stored in this browser on this computer. Take a backup at the end of every day.</p>
+            <p class="note" id="data-note">All bills, payments, menu and stock are saved in a database on this computer. Download an Excel copy or a backup at the end of every day.</p>
+            <p class="note num" id="db-info"></p>
+            <div class="row">
+              <button class="btn primary" data-act="xlsx-all" id="xlsx-all-btn">Download all data (Excel)</button>
+            </div>
             <div class="row">
               <button class="btn" data-act="backup" id="backup-btn">Download backup</button>
               <label class="btn" style="display:inline-flex;align-items:center">Restore backup<input type="file" id="restore-file" accept=".json,application/json" hidden></label>
@@ -377,570 +455,23 @@ td input.price{max-width:110px;text-align:right;font-family:var(--f-mono)}
   </main>
 </div>
 
+<div class="login" id="login" hidden>
+  <div class="login-card">
+    <div class="login-brand"><b id="login-shop">Restaurant</b><span>Sales POS System</span></div>
+    <h2>Sign in</h2>
+    <form id="login-form" class="stack">
+      <label class="field"><span>Username</span><input id="login-user" autocomplete="username" autocapitalize="none" spellcheck="false"></label>
+      <label class="field"><span>Password</span><input id="login-pin" type="password" autocomplete="current-password"></label>
+      <button class="btn primary" type="submit" style="padding:12px">Sign in</button>
+    </form>
+    <p class="msg" id="login-msg" role="status"></p>
+    <p class="note" id="login-hint"></p>
+  </div>
+</div>
 <div class="overlay" id="overlay" hidden></div>
 <div id="print-area"></div>
 
-<script>
-(function(){
-'use strict';
-var IFRAMED=(function(){try{return window.self!==window.top}catch(e){return true}})();
-var KEY='counter-pos-v1';
-var $=function(s,r){return (r||document).querySelector(s)};
-var $$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))};
-var uid=function(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)};
-var pad=function(n){return String(n).padStart(2,'0')};
-var dkey=function(ts){var d=new Date(ts);return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())};
-var today=function(){return dkey(Date.now())};
-var MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
-var num=function(v){var n=parseFloat(String(v==null?'':v).replace(/,/g,''));return isFinite(n)?n:0};
-var r0=function(n){return Math.round(n)};
-function money(n){return (S.settings.currency||'Rs')+' '+r0(n).toLocaleString('en-US')}
-function plain(n){return r0(n).toLocaleString('en-US')}
-function tme(ts){var d=new Date(ts),h=d.getHours(),ap=h>=12?'PM':'AM';h=h%12||12;return h+':'+pad(d.getMinutes())+' '+ap}
-function dfmt(ts){var d=new Date(ts);return pad(d.getDate())+' '+MON[d.getMonth()]+' '+d.getFullYear()}
-function kfmt(k){var p=k.split('-');return pad(+p[2])+' '+MON[+p[1]-1]+' '+p[0]}
-var METHOD={cash:'Cash',bank:'Card / Bank',credit:'Credit'};
-
-/* ---------- storage ---------- */
-var STORAGE_OK=true;
-function load(){try{var s=localStorage.getItem(KEY);return s?JSON.parse(s):null}catch(e){STORAGE_OK=false;return null}}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(S));STORAGE_OK=true}catch(e){STORAGE_OK=false}}
-
-function seed(){
-  var cats=[['c1','Karahi & Handi'],['c2','BBQ'],['c3','Rice'],['c4','Bread'],['c5','Sides'],['c6','Drinks'],['c7','Dessert']].map(function(a){return {id:a[0],name:a[1]}});
-  var items=[
-    ['Chicken Karahi (Half)',1450,'c1'],['Chicken Karahi (Full)',2700,'c1'],['Mutton Karahi (Half)',2600,'c1'],['Chicken Handi (Half)',1500,'c1'],['Daal Mash',450,'c1'],
-    ['Seekh Kebab (4 pcs)',850,'c2'],['Chicken Tikka (Leg)',420,'c2'],['Malai Boti (8 pcs)',1100,'c2'],['Reshmi Kebab (4 pcs)',900,'c2'],
-    ['Chicken Biryani',450,'c3'],['Mutton Pulao',650,'c3'],['Plain Rice',250,'c3'],
-    ['Roti',30,'c4'],['Naan',50,'c4'],['Roghni Naan',90,'c4'],['Garlic Naan',120,'c4'],
-    ['Raita',120,'c5'],['Salad',150,'c5'],['Mint Chutney',60,'c5'],
-    ['Soft Drink (345 ml)',120,'c6'],['Soft Drink (1.5 L)',280,'c6'],['Mineral Water (1.5 L)',130,'c6'],['Doodh Patti Chai',120,'c6'],['Sweet Lassi',220,'c6'],
-    ['Kheer',250,'c7'],['Gulab Jamun (2 pcs)',180,'c7']
-  ].map(function(a){return {id:uid(),name:a[0],price:a[1],catId:a[2],active:true}});
-  var st={settings:{name:'Sample Restaurant',address:'Shop 12, Main Road',phone:'0300-0000000',ntn:'',footer:'Thank you! Please visit again.',taxCash:0,taxCard:0,currency:'Rs',nextNo:1001,autoPrint:true},
-    categories:cats,items:items,bills:[],customers:[{id:'cs1',name:'Ahmed Traders',phone:'0300-1234567',sample:true}],collections:[]};
-  var byName={};items.forEach(function(i){byName[i.name]=i});
-  function mk(lines,method,minsAgo,extra){
-    var ls=lines.map(function(l){var i=byName[l[0]];return {itemId:i.id,name:i.name,price:i.price,qty:l[1]}});
-    var sub=ls.reduce(function(a,l){return a+l.price*l.qty},0),disc=(extra&&extra.discount)||0,tot=sub-disc;
-    var b={id:uid(),no:st.settings.nextNo++,ts:Date.now()-minsAgo*60000,lines:ls,type:(extra&&extra.type)||'Dine-in',table:(extra&&extra.table)||'',
-      subtotal:sub,discount:disc,taxRate:0,tax:0,total:tot,method:method,received:method==='cash'?Math.ceil(tot/500)*500:0,customerId:method==='credit'?'cs1':'',ref:'',status:'paid',sample:true};
-    b.change=method==='cash'?b.received-tot:0;st.bills.push(b);
-  }
-  mk([['Chicken Karahi (Half)',1],['Naan',4],['Soft Drink (1.5 L)',1]],'cash',190,{table:'T2'});
-  mk([['Chicken Biryani',3],['Raita',2],['Mineral Water (1.5 L)',1]],'bank',150,{type:'Takeaway'});
-  mk([['Mutton Karahi (Half)',1],['Seekh Kebab (4 pcs)',1],['Roghni Naan',4],['Salad',1]],'credit',95,{table:'T5'});
-  mk([['Doodh Patti Chai',4],['Gulab Jamun (2 pcs)',2]],'cash',40,{discount:40,table:'T1'});
-  st.collections.push({id:uid(),ts:Date.now()-20*60000,customerId:'cs1',amount:2000,method:'cash',note:'Part payment',sample:true});
-  return st;
-}
-
-var S=load()||seed();
-['bills','customers','collections','items','categories'].forEach(function(k){if(!Array.isArray(S[k]))S[k]=[]});
-save();
-
-/* ---------- ui state ---------- */
-var ui={tab:'bill',cat:'all',q:'',billsDate:today(),billsQ:'',rFrom:today(),rTo:today()};
-function newCart(){return {lines:[],type:'Dine-in',table:'',discount:'',method:'cash',received:'',ref:'',customerId:'',custName:'',custPhone:''}}
-var cart=newCart();
-if(!S._seededCart&&S.items.length>2){cart.lines=[{itemId:S.items[9].id,name:S.items[9].name,price:S.items[9].price,qty:2},{itemId:S.items[19].id,name:S.items[19].name,price:S.items[19].price,qty:2}];cart.table='T3';S._seededCart=true;save()}
-
-function totals(c){
-  var subtotal=c.lines.reduce(function(a,l){return a+l.price*l.qty},0);
-  var discount=Math.max(0,Math.min(num(c.discount),subtotal));
-  var rate=c.method==='bank'?num(S.settings.taxCard):num(S.settings.taxCash);
-  var tax=r0((subtotal-discount)*rate/100);
-  return {subtotal:subtotal,discount:discount,rate:rate,tax:tax,total:r0(subtotal-discount+tax)};
-}
-function custById(id){for(var i=0;i<S.customers.length;i++)if(S.customers[i].id===id)return S.customers[i];return null}
-function balance(id){
-  var due=S.bills.reduce(function(a,b){return a+(b.method==='credit'&&b.customerId===id&&b.status!=='void'?b.total:0)},0);
-  var paid=S.collections.reduce(function(a,c){return a+(c.customerId===id?c.amount:0)},0);
-  return due-paid;
-}
-function hasSamples(){return S.bills.some(function(b){return b.sample})||S.customers.some(function(c){return c.sample})||S.collections.some(function(c){return c.sample})||S.settings.name==='Sample Restaurant'}
-
-/* ---------- header / banners ---------- */
-function renderHeader(){
-  $('#brand-name').textContent=S.settings.name||'Restaurant';
-  var b='';
-  if(!STORAGE_OK)b+='<div class="banner warn"><span>This browser is not saving data. Bills will be lost when the page closes. Check that site data is allowed for this page.</span></div>';
-  if(hasSamples())b+='<div class="banner"><span>You are looking at sample data: an example menu and four example bills.</span><button class="linkbtn" data-act="clear-samples">Remove sample bills</button><button class="linkbtn" data-act="tab" data-v="settings">Set restaurant name</button></div>';
-  $('#banners').innerHTML=b;
-}
-function tick(){var d=new Date();$('#clock').textContent=pad(d.getDate())+' '+MON[d.getMonth()]+' · '+tme(d)}
-
-/* ---------- tabs ---------- */
-function setTab(t){
-  ui.tab=t;
-  $$('.tab').forEach(function(b){if(b.dataset.v===t)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
-  $$('.view').forEach(function(v){v.hidden=v.id!=='v-'+t});
-  renderView();
-  window.scrollTo(0,0);
-}
-function renderView(){
-  renderHeader();
-  ({bill:renderPOS,bills:renderBills,credit:renderCredit,report:renderReport,menu:renderMenu,settings:renderSettings})[ui.tab]();
-}
-
-/* ---------- POS ---------- */
-function visibleItems(){
-  var q=ui.q.trim().toLowerCase();
-  return S.items.filter(function(i){return i.active&&(ui.cat==='all'||i.catId===ui.cat)&&(!q||i.name.toLowerCase().indexOf(q)>=0)});
-}
-function renderPOS(){
-  var cats='<button class="cat" data-act="cat" data-v="all" aria-pressed="'+(ui.cat==='all')+'">All</button>'+
-    S.categories.map(function(c){return '<button class="cat" data-act="cat" data-v="'+esc(c.id)+'" aria-pressed="'+(ui.cat===c.id)+'">'+esc(c.name)+'</button>'}).join('');
-  $('#cats').innerHTML=cats;
-  renderItems();
-  $('#cart-table').value=cart.table;
-  $('#cart-discount').value=cart.discount;
-  renderCart(true);
-}
-function renderItems(){
-  var list=visibleItems(),inCart={};
-  cart.lines.forEach(function(l){inCart[l.itemId]=(inCart[l.itemId]||0)+l.qty});
-  $('#items').innerHTML=list.length?list.map(function(i){
-    return '<button class="item" data-act="add" data-id="'+esc(i.id)+'"><span class="n">'+esc(i.name)+'</span>'+
-      '<span style="display:flex;justify-content:space-between;align-items:center;gap:6px"><span class="p">'+plain(i.price)+'</span>'+(inCart[i.id]?'<span class="q">×'+inCart[i.id]+'</span>':'')+'</span></button>';
-  }).join(''):'<div class="empty" style="grid-column:1/-1">No items match. Add items in the Menu tab.</div>';
-}
-function renderCart(full){
-  $('#next-no').textContent='Bill #'+S.settings.nextNo;
-  $$('#order-type button').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.v===cart.type))});
-  $$('#pay-method button').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.v===cart.method))});
-  $('#cart-lines').innerHTML=cart.lines.length?cart.lines.map(function(l,ix){
-    return '<div class="line"><div><div class="nm">'+esc(l.name)+'</div><div class="each num">'+plain(l.price)+' each</div></div>'+
-      '<div class="qty"><button data-act="dec" data-ix="'+ix+'" aria-label="One less '+esc(l.name)+'">−</button><span>'+l.qty+'</span><button data-act="inc" data-ix="'+ix+'" aria-label="One more '+esc(l.name)+'">+</button></div>'+
-      '<div class="amt">'+plain(l.price*l.qty)+'</div></div>';
-  }).join(''):'<div class="empty">Tap menu items to start a bill.</div>';
-  renderSum();
-  if(full)renderPayExtra();
-  var sb=$('#save-btn');sb.textContent=(S.settings.autoPrint&&!IFRAMED)?'Save & print':'Save bill';
-}
-function renderSum(){
-  var t=totals(cart);
-  $('#cart-sum').innerHTML='<div><span>Subtotal</span><span class="num">'+plain(t.subtotal)+'</span></div>'+
-    (t.discount?'<div><span>Discount</span><span class="num">−'+plain(t.discount)+'</span></div>':'')+
-    (t.rate?'<div><span>Sales tax '+t.rate+'%</span><span class="num">'+plain(t.tax)+'</span></div>':'')+
-    '<div class="total"><span>Total</span><span class="num">'+money(t.total)+'</span></div>';
-  renderChange();
-}
-function renderChange(){
-  var el=$('#change-line');if(!el)return;
-  var t=totals(cart),rec=num(cart.received);
-  if(!cart.received){el.className='change';el.innerHTML='<span>Change</span><span class="num">—</span>';return}
-  var ch=rec-t.total;
-  el.className='change'+(ch<0?' short':'');
-  el.innerHTML='<span>'+(ch<0?'Short by':'Change to return')+'</span><span class="num">'+money(Math.abs(ch))+'</span>';
-}
-function renderPayExtra(){
-  var h='';
-  if(cart.method==='cash'){
-    h='<label class="field"><span>Cash received from customer</span><input id="cash-rec" inputmode="numeric" class="num" placeholder="Leave empty if exact" value="'+esc(cart.received)+'" autocomplete="off"></label>'+
-      '<div class="quick"><button class="btn sm" data-act="rec" data-v="exact">Exact</button><button class="btn sm" data-act="rec" data-v="500">500</button><button class="btn sm" data-act="rec" data-v="1000">1,000</button><button class="btn sm" data-act="rec" data-v="5000">5,000</button></div>'+
-      '<div class="change" id="change-line"></div>';
-  }else if(cart.method==='bank'){
-    h='<label class="field"><span>Card / transaction reference (optional)</span><input id="bank-ref" value="'+esc(cart.ref)+'" placeholder="e.g. last 4 digits or slip no." autocomplete="off"></label>';
-  }else{
-    var opts='<option value="">Choose customer…</option>'+S.customers.slice().sort(function(a,b){return a.name.localeCompare(b.name)}).map(function(c){
-      return '<option value="'+esc(c.id)+'"'+(c.id===cart.customerId?' selected':'')+'>'+esc(c.name)+(c.phone?' · '+esc(c.phone):'')+'</option>'}).join('')+'<option value="__new"'+(cart.customerId==='__new'?' selected':'')+'>+ New customer</option>';
-    h='<label class="field"><span>Bill goes on credit to</span><select id="cust-sel">'+opts+'</select></label>';
-    if(cart.customerId==='__new')h+='<div class="row"><label class="field"><span>Name</span><input id="cust-name" value="'+esc(cart.custName)+'" autocomplete="off"></label><label class="field"><span>Phone</span><input id="cust-phone" value="'+esc(cart.custPhone)+'" inputmode="tel" autocomplete="off"></label></div>';
-    else if(cart.customerId){h+='<p class="note">Already owes <b class="num">'+money(balance(cart.customerId))+'</b> before this bill.</p>'}
-  }
-  $('#pay-extra').innerHTML=h;
-  renderChange();
-}
-function addItem(id){
-  var it=S.items.find(function(i){return i.id===id});if(!it)return;
-  var l=cart.lines.find(function(x){return x.itemId===id&&x.price===it.price});
-  if(l)l.qty++;else cart.lines.push({itemId:it.id,name:it.name,price:it.price,qty:1});
-  msg('#cart-msg','');renderItems();renderCart(false);
-}
-function saveBill(){
-  if(!cart.lines.length)return msg('#cart-msg','Add at least one item first.');
-  var t=totals(cart),b={id:uid(),no:num(S.settings.nextNo)||1001,ts:Date.now(),lines:cart.lines.map(function(l){return {itemId:l.itemId,name:l.name,price:l.price,qty:l.qty}}),
-    type:cart.type,table:cart.table.trim(),subtotal:t.subtotal,discount:t.discount,taxRate:t.rate,tax:t.tax,total:t.total,method:cart.method,received:0,change:0,customerId:'',ref:'',status:'paid'};
-  if(cart.method==='cash'){
-    var rec=cart.received===''?t.total:num(cart.received);
-    if(rec<t.total)return msg('#cart-msg','Cash received is less than the total. Enter the full amount or choose Credit.');
-    b.received=rec;b.change=rec-t.total;
-  }else if(cart.method==='bank'){b.ref=cart.ref.trim()}
-  else{
-    if(cart.customerId==='__new'){
-      var nm=cart.custName.trim();if(!nm)return msg('#cart-msg','Enter the customer name for a credit bill.');
-      var c={id:uid(),name:nm,phone:cart.custPhone.trim()};S.customers.push(c);b.customerId=c.id;
-    }else if(cart.customerId&&custById(cart.customerId)){b.customerId=cart.customerId}
-    else return msg('#cart-msg','Choose who this credit bill belongs to.');
-  }
-  S.bills.push(b);S.settings.nextNo=b.no+1;save();
-  var keepType=cart.type;cart=newCart();cart.type=keepType;
-  renderPOS();renderHeader();
-  msg('#cart-msg','Bill #'+b.no+' saved · '+money(b.total),true);
-  showReceipt(b,true);
-}
-function msg(sel,text,ok){var el=$(sel);if(!el)return;el.textContent=text;el.className='msg'+(ok?' ok':'')}
-
-/* ---------- receipt ---------- */
-function receiptHTML(b){
-  var s=S.settings,c=b.customerId?custById(b.customerId):null;
-  var rows=b.lines.map(function(l){return '<tr><td colspan="3">'+esc(l.name)+'</td></tr><tr><td>&nbsp;&nbsp;'+l.qty+' × '+plain(l.price)+'</td><td></td><td style="text-align:right">'+plain(l.qty*l.price)+'</td></tr>'}).join('');
-  var h='<div class="rcpt"><div class="shop">'+esc(s.name)+'</div>'+
-    (s.address?'<div class="c">'+esc(s.address)+'</div>':'')+(s.phone?'<div class="c">Ph: '+esc(s.phone)+'</div>':'')+(s.ntn?'<div class="c">NTN: '+esc(s.ntn)+'</div>':'')+
-    '<hr><table><tr><td>Bill # '+b.no+'</td><td style="text-align:right">'+dfmt(b.ts)+'</td></tr><tr><td>'+esc(b.type)+(b.table?' · '+esc(b.table):'')+'</td><td style="text-align:right">'+tme(b.ts)+'</td></tr></table>'+
-    (b.status==='void'?'<div class="stamp">VOID</div>':'')+
-    '<hr><table>'+rows+'</table><hr><table>'+
-    '<tr><td>Subtotal</td><td style="text-align:right">'+plain(b.subtotal)+'</td></tr>'+
-    (b.discount?'<tr><td>Discount</td><td style="text-align:right">-'+plain(b.discount)+'</td></tr>':'')+
-    (b.taxRate?'<tr><td>Sales tax '+b.taxRate+'%</td><td style="text-align:right">'+plain(b.tax)+'</td></tr>':'')+
-    '<tr class="big"><td>TOTAL '+esc(s.currency||'Rs')+'</td><td style="text-align:right">'+plain(b.total)+'</td></tr></table><hr><table>'+
-    '<tr><td>Paid by</td><td style="text-align:right">'+METHOD[b.method]+'</td></tr>'+
-    (b.method==='cash'?'<tr><td>Cash received</td><td style="text-align:right">'+plain(b.received)+'</td></tr><tr><td>Change</td><td style="text-align:right">'+plain(b.change)+'</td></tr>':'')+
-    (b.method==='bank'&&b.ref?'<tr><td>Ref</td><td style="text-align:right">'+esc(b.ref)+'</td></tr>':'')+
-    (c?'<tr><td>Customer</td><td style="text-align:right">'+esc(c.name)+'</td></tr><tr><td colspan="2">Amount payable later</td></tr>':'')+
-    '</table><hr>'+(s.footer?'<div class="c">'+esc(s.footer)+'</div>':'')+'</div>';
-  return h;
-}
-function printHTML(html){
-  if(IFRAMED)return false;
-  $('#print-area').innerHTML=html;
-  try{window.print()}catch(e){}
-  return true;
-}
-function printNote(){return IFRAMED?'<p class="note">Printing works when the POS runs on its own website or computer. This preview window cannot open the print dialog.</p>':''}
-function showReceipt(b,fresh){
-  var acts='';
-  if(!IFRAMED)acts+='<button class="btn" data-act="print-bill" data-id="'+b.id+'">'+(fresh?'Print again':'Print')+'</button>';
-  if(!fresh&&b.status!=='void')acts+='<button class="btn danger" data-act="void-start" data-id="'+b.id+'">Void bill</button>';
-  acts+='<button class="btn primary" data-act="close">'+(fresh?'Next bill':'Close')+'</button>';
-  openModal('<div class="modal-head"><h2>'+(fresh?'Bill #'+b.no+' saved':'Bill #'+b.no)+'</h2><button class="x" data-act="close" aria-label="Close">×</button></div>'+
-    (b.status==='void'?'<p class="msg">Voided'+(b.voidReason?': '+esc(b.voidReason):'')+'</p>':'')+
-    '<div class="paper">'+receiptHTML(b)+'</div>'+printNote()+'<div id="void-box"></div><div class="modal-actions">'+acts+'</div>');
-  if(fresh&&S.settings.autoPrint)printHTML(receiptHTML(b));
-}
-
-/* ---------- modal ---------- */
-var lastFocus=null;
-function openModal(html,wide){
-  lastFocus=document.activeElement;
-  var o=$('#overlay');o.innerHTML='<div class="modal'+(wide?' wide':'')+'" role="dialog" aria-modal="true">'+html+'</div>';o.hidden=false;
-  var f=o.querySelector('input,select,.btn.primary');if(f)f.focus();
-}
-function closeModal(){var o=$('#overlay');o.hidden=true;o.innerHTML='';if(lastFocus&&lastFocus.focus)try{lastFocus.focus()}catch(e){}}
-
-/* ---------- bills ---------- */
-function renderBills(){
-  $('#bills-date').value=ui.billsDate;$('#bills-q').value=ui.billsQ;
-  var q=ui.billsQ.trim();
-  var list=S.bills.filter(function(b){return q?String(b.no).indexOf(q)>=0:dkey(b.ts)===ui.billsDate}).sort(function(a,b){return b.ts-a.ts});
-  if(!list.length){$('#bills-table').innerHTML='<div class="empty">'+(q?'No bill number matches '+esc(q)+'.':'No bills on '+kfmt(ui.billsDate)+'.')+'</div>';return}
-  var tot=0;
-  $('#bills-table').innerHTML='<table><thead><tr><th>Bill</th><th>'+(q?'Date / time':'Time')+'</th><th>Order</th><th class="r">Items</th><th class="r">Total</th><th>Payment</th><th></th></tr></thead><tbody>'+
-    list.map(function(b){
-      if(b.status!=='void')tot+=b.total;
-      var c=b.customerId?custById(b.customerId):null;
-      return '<tr class="'+(b.status==='void'?'void':'')+'"><td class="num">#'+b.no+'</td><td>'+(q?dfmt(b.ts)+' ':'')+tme(b.ts)+'</td><td>'+esc(b.type)+(b.table?' · '+esc(b.table):'')+'</td>'+
-        '<td class="r num">'+b.lines.reduce(function(a,l){return a+l.qty},0)+'</td><td class="r num">'+plain(b.total)+'</td>'+
-        '<td class="st">'+(b.status==='void'?'<span class="chip void">Void</span>':'<span class="chip '+b.method+'">'+METHOD[b.method]+'</span>'+(c?' <span class="note">'+esc(c.name)+'</span>':''))+'</td>'+
-        '<td class="r"><button class="btn sm" data-act="view-bill" data-id="'+b.id+'">Open</button></td></tr>';
-    }).join('')+'</tbody><tfoot><tr><td colspan="4">'+list.filter(function(b){return b.status!=='void'}).length+' bills</td><td class="r num">'+plain(tot)+'</td><td colspan="2"></td></tr></tfoot></table>';
-}
-function startVoid(id){
-  $('#void-box').innerHTML='<div class="stack"><label class="field"><span>Reason for voiding (required)</span><input id="void-reason" placeholder="e.g. Customer cancelled order"></label>'+
-    '<div class="modal-actions"><button class="btn danger" data-act="void-confirm" data-id="'+id+'">Confirm void</button></div><p class="msg" id="void-msg"></p></div>';
-  $('#void-reason').focus();
-}
-function confirmVoid(id){
-  var reason=($('#void-reason').value||'').trim();if(!reason)return msg('#void-msg','Write a short reason so the owner can see why it was voided.');
-  var b=S.bills.find(function(x){return x.id===id});if(!b)return;
-  b.status='void';b.voidReason=reason;b.voidTs=Date.now();save();closeModal();renderView();
-}
-
-/* ---------- credit ---------- */
-function renderCredit(){
-  var rows=S.customers.map(function(c){
-    var bills=S.bills.filter(function(b){return b.customerId===c.id&&b.method==='credit'&&b.status!=='void'});
-    var cols=S.collections.filter(function(x){return x.customerId===c.id});
-    var last=Math.max.apply(null,[0].concat(bills.map(function(b){return b.ts}),cols.map(function(x){return x.ts})));
-    return {c:c,bal:balance(c.id),billed:bills.reduce(function(a,b){return a+b.total},0),paid:cols.reduce(function(a,x){return a+x.amount},0),last:last};
-  }).sort(function(a,b){return b.bal-a.bal});
-  if(!rows.length){$('#credit-table').innerHTML='<div class="empty">No credit customers yet. Choose “Credit” when saving a bill, or add a customer here.</div>';return}
-  var total=rows.reduce(function(a,r){return a+r.bal},0);
-  $('#credit-table').innerHTML='<table><thead><tr><th>Customer</th><th>Phone</th><th class="r">Billed on credit</th><th class="r">Received</th><th class="r">Balance due</th><th>Last activity</th><th></th></tr></thead><tbody>'+
-    rows.map(function(r){return '<tr><td><b>'+esc(r.c.name)+'</b></td><td>'+esc(r.c.phone||'—')+'</td><td class="r num">'+plain(r.billed)+'</td><td class="r num">'+plain(r.paid)+'</td>'+
-      '<td class="r num" style="color:'+(r.bal>0?'var(--credit)':'var(--muted)')+';font-weight:700">'+plain(r.bal)+'</td><td>'+(r.last?dfmt(r.last):'—')+'</td>'+
-      '<td class="r" style="white-space:nowrap"><button class="btn sm" data-act="ledger" data-id="'+r.c.id+'">Ledger</button> <button class="btn sm primary" data-act="collect" data-id="'+r.c.id+'"'+(r.bal<=0?' disabled':'')+'>Receive payment</button></td></tr>'}).join('')+
-    '</tbody><tfoot><tr><td colspan="4">Total receivable</td><td class="r num">'+plain(total)+'</td><td colspan="2"></td></tr></tfoot></table>';
-}
-function openCollect(id){
-  var c=custById(id),bal=balance(id);
-  openModal('<div class="modal-head"><h2>Payment from '+esc(c.name)+'</h2><button class="x" data-act="close" aria-label="Close">×</button></div>'+
-    '<p class="note">Balance due: <b class="num">'+money(bal)+'</b></p>'+
-    '<div class="row"><label class="field"><span>Amount received</span><input id="col-amt" inputmode="numeric" class="num" value="'+r0(bal)+'"></label>'+
-    '<label class="field"><span>Received in</span><select id="col-method"><option value="cash">Cash</option><option value="bank">Card / Bank</option></select></label></div>'+
-    '<label class="field"><span>Note (optional)</span><input id="col-note" placeholder="e.g. JazzCash, cheque no."></label><p class="msg" id="col-msg"></p>'+
-    '<div class="modal-actions"><button class="btn" data-act="close">Cancel</button><button class="btn primary" data-act="collect-save" data-id="'+id+'">Save payment</button></div>');
-}
-function saveCollect(id){
-  var amt=num($('#col-amt').value);if(amt<=0)return msg('#col-msg','Enter the amount received.');
-  S.collections.push({id:uid(),ts:Date.now(),customerId:id,amount:r0(amt),method:$('#col-method').value,note:$('#col-note').value.trim()});
-  save();closeModal();renderView();
-}
-function openLedger(id){
-  var c=custById(id);
-  var ev=S.bills.filter(function(b){return b.customerId===id&&b.method==='credit'&&b.status!=='void'}).map(function(b){return {ts:b.ts,d:'Bill #'+b.no,dr:b.total,cr:0}})
-    .concat(S.collections.filter(function(x){return x.customerId===id}).map(function(x){return {ts:x.ts,d:'Payment · '+METHOD[x.method]+(x.note?' · '+x.note:''),dr:0,cr:x.amount}}))
-    .sort(function(a,b){return a.ts-b.ts});
-  var bal=0;
-  openModal('<div class="modal-head"><h2>'+esc(c.name)+'</h2><button class="x" data-act="close" aria-label="Close">×</button></div>'+
-    '<div class="tablewrap"><table><thead><tr><th>Date</th><th>Detail</th><th class="r">Billed</th><th class="r">Paid</th><th class="r">Balance</th></tr></thead><tbody>'+
-    (ev.length?ev.map(function(e){bal+=e.dr-e.cr;return '<tr><td>'+dfmt(e.ts)+'</td><td>'+esc(e.d)+'</td><td class="r num">'+(e.dr?plain(e.dr):'')+'</td><td class="r num">'+(e.cr?plain(e.cr):'')+'</td><td class="r num">'+plain(bal)+'</td></tr>'}).join(''):'<tr><td colspan="5">No activity yet.</td></tr>')+
-    '</tbody></table></div><div class="modal-actions"><button class="btn primary" data-act="close">Close</button></div>',true);
-}
-function openAddCustomer(){
-  openModal('<div class="modal-head"><h2>Add credit customer</h2><button class="x" data-act="close" aria-label="Close">×</button></div>'+
-    '<label class="field"><span>Name</span><input id="ac-name"></label><label class="field"><span>Phone</span><input id="ac-phone" inputmode="tel"></label><p class="msg" id="ac-msg"></p>'+
-    '<div class="modal-actions"><button class="btn" data-act="close">Cancel</button><button class="btn primary" data-act="add-customer-save">Add customer</button></div>');
-}
-
-/* ---------- report ---------- */
-function inRange(ts){var k=dkey(ts);return k>=ui.rFrom&&k<=ui.rTo}
-function report(){
-  var bills=S.bills.filter(function(b){return inRange(b.ts)}),ok=bills.filter(function(b){return b.status!=='void'}),voids=bills.filter(function(b){return b.status==='void'});
-  var sum=function(f){return ok.reduce(function(a,b){return a+f(b)},0)};
-  var r={bills:ok,count:ok.length,voids:voids,gross:sum(function(b){return b.subtotal}),discount:sum(function(b){return b.discount}),tax:sum(function(b){return b.tax}),total:sum(function(b){return b.total}),
-    by:{cash:0,bank:0,credit:0},types:{},items:{}};
-  r.net=r.gross-r.discount;
-  ok.forEach(function(b){r.by[b.method]+=b.total;r.types[b.type]=(r.types[b.type]||0)+b.total;
-    b.lines.forEach(function(l){var k=l.name;if(!r.items[k])r.items[k]={qty:0,amt:0};r.items[k].qty+=l.qty;r.items[k].amt+=l.qty*l.price})});
-  var cols=S.collections.filter(function(c){return inRange(c.ts)});
-  r.colCash=cols.filter(function(c){return c.method==='cash'}).reduce(function(a,c){return a+c.amount},0);
-  r.colBank=cols.filter(function(c){return c.method==='bank'}).reduce(function(a,c){return a+c.amount},0);
-  r.drawer=r.by.cash+r.colCash;
-  r.outstanding=S.customers.reduce(function(a,c){return a+Math.max(0,balance(c.id))},0);
-  return r;
-}
-function renderReport(){
-  $('#r-from').value=ui.rFrom;$('#r-to').value=ui.rTo;
-  $('#report-range').textContent=ui.rFrom===ui.rTo?kfmt(ui.rFrom):kfmt(ui.rFrom)+' to '+kfmt(ui.rTo);
-  var r=report(),T=r.total||1;
-  var items=Object.keys(r.items).map(function(k){return {n:k,q:r.items[k].qty,a:r.items[k].amt}}).sort(function(a,b){return b.a-a.a});
-  var h='<div class="stats">'+
-    '<div class="stat"><div class="k">Total sales</div><div class="v">'+money(r.total)+'</div><div class="h">'+r.count+' bills'+(r.voids.length?' · '+r.voids.length+' voided':'')+'</div></div>'+
-    '<div class="stat"><div class="k">Cash in drawer</div><div class="v">'+money(r.drawer)+'</div><div class="h">Cash sales + cash collected</div></div>'+
-    '<div class="stat"><div class="k">Card / bank</div><div class="v">'+money(r.by.bank+r.colBank)+'</div><div class="h">Sales + bank collections</div></div>'+
-    '<div class="stat"><div class="k">Receivable now</div><div class="v">'+money(r.outstanding)+'</div><div class="h">All customers, as of today</div></div></div>';
-  h+='<div class="cols2"><div class="stack">';
-  h+='<div class="panel"><h2>How sales were paid</h2><div class="split" role="img" aria-label="Cash '+plain(r.by.cash)+', card or bank '+plain(r.by.bank)+', credit '+plain(r.by.credit)+'">'+
-    '<i style="width:'+(r.by.cash/T*100)+'%;background:var(--cash)"></i><i style="width:'+(r.by.bank/T*100)+'%;background:var(--bank)"></i><i style="width:'+(r.by.credit/T*100)+'%;background:var(--credit)"></i></div>'+
-    '<div class="legend"><span><b style="background:var(--cash)"></b>Cash '+plain(r.by.cash)+'</span><span><b style="background:var(--bank)"></b>Card / bank '+plain(r.by.bank)+'</span><span><b style="background:var(--credit)"></b>Credit '+plain(r.by.credit)+'</span></div></div>';
-  h+='<div class="panel"><h2>Accounting entries</h2><p class="sub">Summary journal for the period. Debits equal credits.</p><div class="tablewrap"><table><thead><tr><th></th><th>Account</th><th class="r">Debit</th><th class="r">Credit</th></tr></thead><tbody>'+
-    '<tr><td class="dr">Dr</td><td>Cash in hand</td><td class="r num">'+plain(r.by.cash)+'</td><td></td></tr>'+
-    '<tr><td class="dr">Dr</td><td>Bank (card / transfer)</td><td class="r num">'+plain(r.by.bank)+'</td><td></td></tr>'+
-    '<tr><td class="dr">Dr</td><td>Accounts receivable</td><td class="r num">'+plain(r.by.credit)+'</td><td></td></tr>'+
-    '<tr><td class="dr">Cr</td><td>&nbsp;&nbsp;Sales (after discount)</td><td></td><td class="r num">'+plain(r.net)+'</td></tr>'+
-    (r.tax?'<tr><td class="dr">Cr</td><td>&nbsp;&nbsp;Sales tax payable</td><td></td><td class="r num">'+plain(r.tax)+'</td></tr>':'')+
-    '</tbody><tfoot><tr><td></td><td>Total</td><td class="r num">'+plain(r.total)+'</td><td class="r num">'+plain(r.net+r.tax)+'</td></tr></tfoot></table></div>'+
-    ((r.colCash||r.colBank)?'<p class="sub" style="margin-top:12px">Credit collected in the period:</p><div class="tablewrap"><table><tbody>'+
-      (r.colCash?'<tr><td class="dr">Dr</td><td>Cash in hand</td><td class="r num">'+plain(r.colCash)+'</td><td></td></tr>':'')+
-      (r.colBank?'<tr><td class="dr">Dr</td><td>Bank</td><td class="r num">'+plain(r.colBank)+'</td><td></td></tr>':'')+
-      '<tr><td class="dr">Cr</td><td>&nbsp;&nbsp;Accounts receivable</td><td></td><td class="r num">'+plain(r.colCash+r.colBank)+'</td></tr></tbody></table></div>':'')+'</div>';
-  h+='<div class="panel"><h2>Bill summary</h2><div class="tablewrap"><table><tbody>'+
-    '<tr><td>Gross sales (menu prices)</td><td class="r num">'+plain(r.gross)+'</td></tr><tr><td>Discounts given</td><td class="r num">−'+plain(r.discount)+'</td></tr>'+
-    '<tr><td>Sales tax charged</td><td class="r num">'+plain(r.tax)+'</td></tr><tr><td><b>Total billed</b></td><td class="r num"><b>'+plain(r.total)+'</b></td></tr>'+
-    Object.keys(r.types).map(function(k){return '<tr><td>'+esc(k)+'</td><td class="r num">'+plain(r.types[k])+'</td></tr>'}).join('')+
-    (r.voids.length?'<tr><td>Voided bills ('+r.voids.length+') · not counted</td><td class="r num">'+plain(r.voids.reduce(function(a,b){return a+b.total},0))+'</td></tr>':'')+
-    '</tbody></table></div></div>';
-  h+='</div><div class="stack"><div class="panel"><h2>Item sales</h2><div class="tablewrap"><table><thead><tr><th>Item</th><th class="r">Qty</th><th class="r">Amount</th></tr></thead><tbody>'+
-    (items.length?items.map(function(i){return '<tr><td>'+esc(i.n)+'</td><td class="r num">'+i.q+'</td><td class="r num">'+plain(i.a)+'</td></tr>'}).join(''):'<tr><td colspan="3">No sales in this period.</td></tr>')+
-    '</tbody></table></div></div>';
-  h+='<div class="panel stack"><h2>Export</h2><p class="note">Bills and item sales as CSV files that open in Excel.</p><div class="row">'+
-    '<button class="btn" data-act="csv-bills">'+(IFRAMED?'Copy bills CSV':'Download bills CSV')+'</button><button class="btn" data-act="csv-items">'+(IFRAMED?'Copy items CSV':'Download items CSV')+'</button>'+
-    (IFRAMED?'':'<button class="btn" data-act="print-report">Print day-end slip</button>')+'</div>'+printNote()+'<p class="msg" id="export-msg"></p></div></div></div>';
-  $('#report-body').innerHTML=h;
-}
-function reportSlip(){
-  var r=report(),s=S.settings;
-  var items=Object.keys(r.items).map(function(k){return {n:k,q:r.items[k].qty,a:r.items[k].amt}}).sort(function(a,b){return b.a-a.a});
-  var row=function(a,b){return '<tr><td>'+a+'</td><td style="text-align:right">'+b+'</td></tr>'};
-  return '<div class="rcpt"><div class="shop">'+esc(s.name)+'</div><div class="c">SALES REPORT</div><div class="c">'+(ui.rFrom===ui.rTo?kfmt(ui.rFrom):kfmt(ui.rFrom)+' – '+kfmt(ui.rTo))+'</div><div class="c">Printed '+dfmt(Date.now())+' '+tme(Date.now())+'</div><hr><table>'+
-    row('Bills',r.count)+row('Gross sales',plain(r.gross))+row('Discounts','-'+plain(r.discount))+row('Sales tax',plain(r.tax))+'<tr class="big"><td>TOTAL</td><td style="text-align:right">'+plain(r.total)+'</td></tr></table><hr><table>'+
-    row('Cash sales',plain(r.by.cash))+row('Card / bank sales',plain(r.by.bank))+row('Credit sales',plain(r.by.credit))+row('Credit collected (cash)',plain(r.colCash))+row('Credit collected (bank)',plain(r.colBank))+
-    '<tr class="big"><td>CASH IN DRAWER</td><td style="text-align:right">'+plain(r.drawer)+'</td></tr></table>'+
-    (r.voids.length?'<hr><table>'+row('Voided bills',r.voids.length)+row('Voided amount',plain(r.voids.reduce(function(a,b){return a+b.total},0)))+'</table>':'')+
-    '<hr><table>'+items.map(function(i){return row(esc(i.n)+' ×'+i.q,plain(i.a))}).join('')+'</table><hr><div class="c">Signature: ____________</div></div>';
-}
-function csvCell(v){v=String(v==null?'':v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}
-function toCSV(rows){return rows.map(function(r){return r.map(csvCell).join(',')}).join('\r\n')}
-function exportText(name,text,mime,msgSel){
-  if(!IFRAMED){
-    try{var blob=new Blob([text],{type:mime}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();
-      setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},1000);msg(msgSel,'Downloaded '+name,true);return}catch(e){}
-  }
-  if(navigator.clipboard&&navigator.clipboard.writeText){
-    navigator.clipboard.writeText(text).then(function(){msg(msgSel,'Copied. Paste into Excel or a text file.',true)},function(){showText(name,text)});
-  }else showText(name,text);
-}
-function showText(name,text){
-  openModal('<div class="modal-head"><h2>'+esc(name)+'</h2><button class="x" data-act="close" aria-label="Close">×</button></div><p class="note">Select all and copy.</p>'+
-    '<label class="field"><textarea id="txt-out" rows="12" style="font-family:var(--f-mono);font-size:12px" readonly>'+esc(text)+'</textarea></label><div class="modal-actions"><button class="btn primary" data-act="close">Done</button></div>',true);
-  var t=$('#txt-out');if(t){t.focus();t.select()}
-}
-function billsCSV(){
-  var rows=[['Bill no','Date','Time','Order type','Table/ref','Items','Subtotal','Discount','Tax','Total','Payment','Customer','Status','Void reason']];
-  S.bills.filter(function(b){return inRange(b.ts)}).sort(function(a,b){return a.ts-b.ts}).forEach(function(b){var c=b.customerId?custById(b.customerId):null;
-    rows.push([b.no,dkey(b.ts),tme(b.ts),b.type,b.table,b.lines.map(function(l){return l.qty+'x '+l.name}).join('; '),b.subtotal,b.discount,b.tax,b.total,METHOD[b.method],c?c.name:'',b.status==='void'?'Void':'Paid',b.voidReason||''])});
-  return toCSV(rows);
-}
-function itemsCSV(){var r=report(),rows=[['Item','Qty','Amount']];Object.keys(r.items).sort().forEach(function(k){rows.push([k,r.items[k].qty,r.items[k].amt])});return toCSV(rows)}
-
-/* ---------- menu ---------- */
-function renderMenu(){
-  $('#cat-list').innerHTML=S.categories.map(function(c){
-    var n=S.items.filter(function(i){return i.catId===c.id}).length;
-    return '<div class="catrow"><input data-cat-name="'+esc(c.id)+'" value="'+esc(c.name)+'" aria-label="Category name"><span class="cnt">'+n+' items</span>'+
-      '<button class="btn sm danger" data-act="del-cat" data-id="'+esc(c.id)+'"'+(n?' disabled title="Move or delete its items first"':'')+' aria-label="Delete category">×</button></div>';
-  }).join('')||'<p class="note">No categories yet.</p>';
-  var catOpts=function(sel){return S.categories.map(function(c){return '<option value="'+esc(c.id)+'"'+(c.id===sel?' selected':'')+'>'+esc(c.name)+'</option>'}).join('')};
-  $('#ni-cat').innerHTML=catOpts(S.categories[0]&&S.categories[0].id);
-  var list=S.items.slice().sort(function(a,b){var ca=S.categories.findIndex(function(c){return c.id===a.catId}),cb=S.categories.findIndex(function(c){return c.id===b.catId});return ca-cb||a.name.localeCompare(b.name)});
-  $('#item-table').innerHTML=list.length?'<table><thead><tr><th>Item</th><th>Category</th><th class="r">Price</th><th>On menu</th><th></th></tr></thead><tbody>'+
-    list.map(function(i){return '<tr><td><input data-item="'+i.id+'" data-f="name" value="'+esc(i.name)+'" aria-label="Item name"></td><td><select data-item="'+i.id+'" data-f="catId" aria-label="Category">'+catOpts(i.catId)+'</select></td>'+
-      '<td class="r"><input class="price" data-item="'+i.id+'" data-f="price" value="'+i.price+'" inputmode="numeric" aria-label="Price"></td><td><input type="checkbox" class="toggle" data-item="'+i.id+'" data-f="active"'+(i.active?' checked':'')+' aria-label="Show on menu"></td>'+
-      '<td class="r"><button class="btn sm danger" data-act="del-item" data-id="'+i.id+'">Delete</button></td></tr>'}).join('')+'</tbody></table>':'<div class="empty">No items yet. Add the first one above.</div>';
-}
-
-/* ---------- settings ---------- */
-function renderSettings(){
-  $$('[data-setting]').forEach(function(el){var k=el.dataset.setting;if(el.type==='checkbox')el.checked=!!S.settings[k];else el.value=S.settings[k]==null?'':S.settings[k]});
-  $('#backup-btn').textContent=IFRAMED?'Copy backup':'Download backup';
-}
-
-/* ---------- armed (two-step) buttons ---------- */
-function armed(btn){
-  if(btn.dataset.armed)return true;
-  btn.dataset.armed='1';var old=btn.textContent;btn.dataset.old=old;btn.textContent='Sure? Click again';
-  setTimeout(function(){if(btn.isConnected){delete btn.dataset.armed;btn.textContent=btn.dataset.old}},3500);
-  return false;
-}
-
-/* ---------- events ---------- */
-document.addEventListener('click',function(e){
-  var t=e.target.closest('[data-act]');
-  if(!t){if(e.target.id==='overlay')closeModal();return}
-  var a=t.dataset.act,v=t.dataset.v,id=t.dataset.id;
-  switch(a){
-    case 'tab':setTab(v);break;
-    case 'cat':ui.cat=v;renderPOS();break;
-    case 'add':addItem(id);break;
-    case 'inc':cart.lines[+t.dataset.ix].qty++;renderItems();renderCart(false);break;
-    case 'dec':var l=cart.lines[+t.dataset.ix];l.qty--;if(l.qty<=0)cart.lines.splice(+t.dataset.ix,1);renderItems();renderCart(false);break;
-    case 'type':cart.type=v;renderCart(false);break;
-    case 'method':cart.method=v;renderCart(true);break;
-    case 'rec':cart.received=v==='exact'?String(totals(cart).total):v;$('#cash-rec').value=cart.received;renderChange();break;
-    case 'clear-cart':if(!cart.lines.length||armed(t)){cart=newCart();renderPOS();msg('#cart-msg','')}break;
-    case 'save-bill':saveBill();break;
-    case 'close':closeModal();break;
-    case 'print-bill':var pb=S.bills.find(function(b){return b.id===id});if(pb)printHTML(receiptHTML(pb));break;
-    case 'view-bill':var vb=S.bills.find(function(b){return b.id===id});if(vb)showReceipt(vb,false);break;
-    case 'void-start':startVoid(id);break;
-    case 'void-confirm':confirmVoid(id);break;
-    case 'collect':openCollect(id);break;
-    case 'collect-save':saveCollect(id);break;
-    case 'ledger':openLedger(id);break;
-    case 'add-customer':openAddCustomer();break;
-    case 'add-customer-save':var nm=$('#ac-name').value.trim();if(!nm)return msg('#ac-msg','Enter a name.');S.customers.push({id:uid(),name:nm,phone:$('#ac-phone').value.trim()});save();closeModal();renderView();break;
-    case 'range':
-      var d=new Date();
-      if(v==='today'){ui.rFrom=ui.rTo=today()}
-      else if(v==='yesterday'){d.setDate(d.getDate()-1);ui.rFrom=ui.rTo=dkey(d)}
-      else{ui.rFrom=d.getFullYear()+'-'+pad(d.getMonth()+1)+'-01';ui.rTo=today()}
-      renderReport();break;
-    case 'csv-bills':exportText('bills_'+ui.rFrom+'_to_'+ui.rTo+'.csv',billsCSV(),'text/csv','#export-msg');break;
-    case 'csv-items':exportText('item_sales_'+ui.rFrom+'_to_'+ui.rTo+'.csv',itemsCSV(),'text/csv','#export-msg');break;
-    case 'print-report':printHTML(reportSlip());break;
-    case 'del-cat':if(armed(t)){S.categories=S.categories.filter(function(c){return c.id!==id});if(ui.cat===id)ui.cat='all';save();renderMenu()}break;
-    case 'del-item':if(armed(t)){S.items=S.items.filter(function(i){return i.id!==id});cart.lines=cart.lines.filter(function(l){return l.itemId!==id});save();renderMenu()}break;
-    case 'backup':exportText('pos_backup_'+today()+'.json',JSON.stringify(S,null,1),'application/json','#data-msg');break;
-    case 'clear-samples':
-      S.bills=S.bills.filter(function(b){return !b.sample});S.collections=S.collections.filter(function(c){return !c.sample});
-      var used={};S.bills.forEach(function(b){if(b.customerId)used[b.customerId]=1});S.collections.forEach(function(c){used[c.customerId]=1});
-      S.customers=S.customers.filter(function(c){return !c.sample||used[c.id]});
-      if(!S.bills.length)S.settings.nextNo=1001;
-      if(S.settings.name==='Sample Restaurant'){save();setTab('settings');msg('#data-msg','Sample bills removed. Now enter the restaurant name and address.',true);var f=$('[data-setting="name"]');f.focus();f.select();return}
-      save();renderView();msg('#data-msg','Sample bills removed.',true);break;
-    case 'erase-all':
-      openModal('<div class="modal-head"><h2>Erase everything?</h2><button class="x" data-act="close" aria-label="Close">×</button></div><p>This deletes every bill, customer, payment and the whole menu from this computer. Take a backup first.</p>'+
-        '<label class="field"><span>Type ERASE to confirm</span><input id="erase-word" autocomplete="off"></label><p class="msg" id="erase-msg"></p><div class="modal-actions"><button class="btn" data-act="close">Cancel</button><button class="btn danger" data-act="erase-confirm">Erase everything</button></div>');break;
-    case 'erase-confirm':
-      if($('#erase-word').value.trim().toUpperCase()!=='ERASE')return msg('#erase-msg','Type ERASE to confirm.');
-      var keep=S.settings;S={settings:keep,categories:[],items:[],bills:[],customers:[],collections:[],_seededCart:true};S.settings.nextNo=1001;cart=newCart();save();closeModal();setTab('menu');break;
-    case 'restore-confirm':
-      if(pendingRestore){S=pendingRestore;pendingRestore=null;cart=newCart();save();closeModal();setTab('bill')}break;
-  }
-});
-document.addEventListener('input',function(e){
-  var el=e.target,id=el.id;
-  if(id==='q'){ui.q=el.value;renderItems();return}
-  if(id==='cart-table'){cart.table=el.value;return}
-  if(id==='cart-discount'){cart.discount=el.value;renderSum();return}
-  if(id==='cash-rec'){cart.received=el.value;renderChange();return}
-  if(id==='bank-ref'){cart.ref=el.value;return}
-  if(id==='cust-name'){cart.custName=el.value;return}
-  if(id==='cust-phone'){cart.custPhone=el.value;return}
-  if(id==='bills-q'){ui.billsQ=el.value;renderBills();return}
-  if(el.dataset.setting&&el.type!=='checkbox'){var k=el.dataset.setting;S.settings[k]=['taxCash','taxCard','nextNo'].indexOf(k)>=0?num(el.value):el.value;save();renderHeader();return}
-});
-document.addEventListener('change',function(e){
-  var el=e.target,id=el.id;
-  if(id==='cust-sel'){cart.customerId=el.value;renderPayExtra();if(el.value==='__new'){var n=$('#cust-name');if(n)n.focus()}return}
-  if(id==='bills-date'){ui.billsDate=el.value||today();ui.billsQ='';renderBills();return}
-  if(id==='r-from'||id==='r-to'){ui.rFrom=$('#r-from').value||today();ui.rTo=$('#r-to').value||ui.rFrom;if(ui.rTo<ui.rFrom){var x=ui.rFrom;ui.rFrom=ui.rTo;ui.rTo=x}renderReport();return}
-  if(el.dataset.setting&&el.type==='checkbox'){S.settings[el.dataset.setting]=el.checked;save();return}
-  if(el.dataset.catName){var c=S.categories.find(function(x){return x.id===el.dataset.catName});if(c&&el.value.trim()){c.name=el.value.trim();save()}renderMenu();return}
-  if(el.dataset.item){
-    var it=S.items.find(function(i){return i.id===el.dataset.item});if(!it)return;var f=el.dataset.f;
-    if(f==='active')it.active=el.checked;else if(f==='price'){var p=num(el.value);if(p>=0)it.price=r0(p)}else if(f==='name'){if(el.value.trim())it.name=el.value.trim()}else it[f]=el.value;
-    save();msg('#menu-msg','Saved '+it.name,true);return;
-  }
-  if(id==='restore-file'&&el.files&&el.files[0]){
-    var rd=new FileReader();rd.onload=function(){
-      try{var d=JSON.parse(rd.result);if(!d||!d.settings||!Array.isArray(d.items)||!Array.isArray(d.bills))throw new Error('x');
-        ['bills','customers','collections','items','categories'].forEach(function(k){if(!Array.isArray(d[k]))d[k]=[]});
-        pendingRestore=d;
-        openModal('<div class="modal-head"><h2>Restore this backup?</h2><button class="x" data-act="close" aria-label="Close">×</button></div><p>The backup has <b>'+d.bills.length+'</b> bills and <b>'+d.items.length+'</b> menu items. It replaces everything currently on this computer.</p><div class="modal-actions"><button class="btn" data-act="close">Cancel</button><button class="btn primary" data-act="restore-confirm">Replace with backup</button></div>');
-      }catch(err){msg('#data-msg','That file is not a POS backup. Choose a file named like pos_backup_2026-10-23.json.')}
-      el.value='';
-    };rd.readAsText(el.files[0]);
-  }
-});
-var pendingRestore=null;
-$('#cat-form').addEventListener('submit',function(e){e.preventDefault();var v=$('#new-cat').value.trim();if(!v)return;S.categories.push({id:uid(),name:v});save();$('#new-cat').value='';renderMenu()});
-$('#item-form').addEventListener('submit',function(e){
-  e.preventDefault();var n=$('#ni-name').value.trim(),p=num($('#ni-price').value),c=$('#ni-cat').value;
-  if(!n)return msg('#menu-msg','Enter the item name.');if(p<=0)return msg('#menu-msg','Enter a price above 0.');if(!c)return msg('#menu-msg','Add a category first.');
-  S.items.push({id:uid(),name:n,price:r0(p),catId:c,active:true});save();$('#ni-name').value='';$('#ni-price').value='';renderMenu();msg('#menu-msg','Added '+n,true);$('#ni-name').focus();
-});
-document.addEventListener('keydown',function(e){
-  if(e.key==='Escape'&&!$('#overlay').hidden){closeModal();return}
-  if(ui.tab!=='bill'||!$('#overlay').hidden)return;
-  var typing=/INPUT|SELECT|TEXTAREA/.test(document.activeElement&&document.activeElement.tagName);
-  if(e.key==='/'&&!typing){e.preventDefault();$('#q').focus();return}
-  if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();saveBill();return}
-  if(e.key==='Enter'&&document.activeElement&&document.activeElement.id==='q'){var v=visibleItems();if(v.length){addItem(v[0].id);$('#q').select()}}
-});
-window.addEventListener('storage',function(e){if(e.key===KEY){var s=load();if(s){S=s;renderView()}}});
-
-/* ---------- boot ---------- */
-if(IFRAMED)$('#data-note').textContent='In this preview, data is stored only in your browser for this page. Download and restore work on the installed version.';
-tick();setInterval(tick,30000);
-setTab('bill');
-if(!IFRAMED&&'serviceWorker' in navigator&&location.protocol==='https:'){try{navigator.serviceWorker.register('sw.js').catch(function(){})}catch(e){}}
-window.__pos={get state(){return S},totals:totals};
-})();
-</script>
+<script src="app.js"></script>
 <!--ARTIFACT-END-->
 </body>
 </html>

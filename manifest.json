@@ -1,6 +1,6 @@
 {
-  "name": "Counter POS",
-  "short_name": "POS",
+  "name": "Sales POS System",
+  "short_name": "Sales POS",
   "description": "Restaurant billing: menu, cash/card/credit bills, receipts and daily sales report.",
   "start_url": "./",
   "display": "standalone",

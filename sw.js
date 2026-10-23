@@ -1,7 +1,7 @@
 // Offline support: the POS keeps working if the internet drops.
 // Network first (so updates arrive), cached copy when offline.
 const CACHE = 'counter-pos-v1';
-const SHELL = ['./', './index.html', './manifest.json', './icon.svg'];
+const SHELL = ['./', './index.html', './app.js', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
